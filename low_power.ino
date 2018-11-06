@@ -16,14 +16,13 @@
 /*** INCLUDES ***/
 
 #include "FS.h"
-#include <ESP8266WiFi.h>
+#include "ESP8266WiFi.h"
+
 #include "config.h"
+#include "wifi.h"
 
 
 /*** DEFINES ***/
-
-// verbosity of the debug output: 0 - no msg, 1 - status msg only, 2 - all msg
-#define VERBOSITY    2
 
 
 /*** GLOBAL VARIABLES ***/
@@ -33,72 +32,79 @@
 
 void setup() {
   // do not start wifi during the boot process
-  // WiFi.mode(WIFI_OFF);
-  // WiFi.forceSleepBegin();
-  delay(1);
+  WiFi.mode(WIFI_OFF);
+  WiFi.persistent(false);
+  WiFi.forceSleepBegin();
 
   // initialize serial communication for debug
   if (VERBOSITY) {
     Serial.begin(115200);
-    // TODO check the status
-    delay(1);
-    Serial.println();
-    Serial.println("=== ESP started ===");
+    while(!Serial){
+      delay(10);
+    }
+    Serial.printf("\n=== %s ===\n", "ESP started");
   }
 
   SPIFFS.begin();
   // TODO check te status
-  if(VERBOSITY) { Serial.println("Filesystem started"); }
-
+  if(VERBOSITY) { Serial.printf("%04d: %s\n", millis(), "Filesystem started"); }  
   //reset saved settings if jumper is mounted
   pinMode(D5, INPUT_PULLUP);
   if(!digitalRead(D5)) {
-    if(VERBOSITY) { Serial.println("Configuration reset"); }
+    if(VERBOSITY) { Serial.printf("%04d: %s\n", millis(), "Configuration reset"); }
     // TODO start config server only
     SPIFFS.format();
-  }
-
-  saveParams(CONFIG_FILE);
-
-  if(VERBOSITY >=2) { printFile(CONFIG_FILE); }
+  }  
 
   // TODO handle wrong loading
+  if(VERBOSITY >=2) { printFile(CONFIG_FILE); }
   switch(loadParams(CONFIG_FILE)){
-    case CONFIG_OK:
-      break;
-    case FS_ERROR:
-      break;
+    
     case NO_CONFIG_FILE:
-      break;
-    case CONFIG_READ_FAIL:
-      break;
+      saveParams(CONFIG_FILE);
+      Serial.printf("%04d: %s\n", millis(), "Going down"); 
+      if(VERBOSITY) { Serial.printf("=== %s ===\n", "ESP Restart"); }
+      ESP.deepSleep(1e6, WAKE_RF_DISABLED);
+      delay(5000);
+      
     default:
       break;
   }
   if(VERBOSITY >= 2) { printParams(); }
 
-  if(strcmp(getValue("wifi_ssid"), "") == 0){
-    Serial.println("No WiFi SSID available");
+  // connect with saved parameters
+  if(strlen(readValue("wifi_ip")) > 7){
+    connectSaved();
+    // TODO debug
+    rmConfig(); 
+  }
+
+  // get the connection from DHCP
+  if(strlen(readValue("wifi_ip")) == 0){
+    connectClean();
+    saveParams(CONFIG_FILE);
+  }
+
+  if(strlen(readValue("wifi_ssid")) == 0){
+    Serial.printf("%04d: %s\n", millis(), "No WiFi SSID available");
     // TODO handle no SSID
   }
-
-  Serial.print("IP: #");
-  Serial.print(strcmp(getValue("wifi_ip"), ""));
-  Serial.println("#");
-  if(strcmp(getValue("wifi_ip"), "") == 0){
-    Serial.println("Connecting to wifi");
-    WiFi.forceSleepWake();
-    delay( 1 );
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(getValue("wifi_ssid"), getValue("wifi_pass"));
-    delay(1000);
-    Serial.println(WiFi.localIP());
+  
+  if(VERBOSITY) {
+    Serial.printf("%04d: %s\n", millis(), "Going down");
+    Serial.printf("=== %s ===\n", "ESP Sleep"); 
   }
 
-
+  
+  ESP.deepSleep(10e6, WAKE_RF_DISABLED);
+  delay(5000);
 }
 
 
 /*** LOOP ***/
 
 void loop() {}
+
+
+/*** FUNCTIONS ***/
+

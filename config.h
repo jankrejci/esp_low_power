@@ -9,6 +9,9 @@
 
 #define CONFIG_H
 
+// verbosity of the debug output: 0 - no msg, 1 - status msg only, 2 - all msg
+#define VERBOSITY    1
+
 #define CONFIG_FILE       "/config.json"
 #define DELIMITER         ','
 #define LINE_BUFFER       300
@@ -35,14 +38,16 @@ struct Param {
 
 /*** FUNCTIONS */
 
-char* getValue(const char* key);
-struct Param readParam(const char* key);
+char* readValue(const char* key);
+void writeValue(const char* key, const char* value);
 int writeParam(char* key, char* nice_name, char* value);
 void saveParams(char* filename);
 int loadParams(char* filename);
 void printFile(char* filename);
 void printParams();
+void printString(char* text);
 char** splitLine(char* line);
-
+void cleanConfig();
+void rmConfig();
 
 #endif

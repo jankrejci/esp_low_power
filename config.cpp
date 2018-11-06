@@ -11,22 +11,23 @@
 /*** GLOBAL VARIABLES ***/
 
 struct Param params[] = {
-                          // param name, nice name, default value
-                          {"wifi_ssid",   "SSID",       "WiFi VNT"},
-                          {"wifi_pass",   "Password",   "vnttnv321"},
-                          {"wifi_chann",  "Channel",    ""},
-                          {"wifi_essid",  "ESSID",      ""},
-                          {"wifi_ip",     "IP",         ""},
-                          {"wifi_gate",   "Gateway",    ""},
-                          {"wifi_mask",   "Mask",       ""},
-                          {"mqtt_server", "Server",     "skynjari.cz"},
-                          {"mqtt_port",   "Port",       "1883"},
-                          {"mqtt_user",   "User name",  ""},
-                          {"mqtt_pass",   "Password",   ""},
-                          {"mqtt_id",     "ID",         "esp_sleep"},
-                          {"mqtt_topic",  "Topic",      "esp/test"},
-                          {"timezone",    "Timezone",   "2"}
-                        };
+  // param name, nice name, default value
+  {"wifi_ssid",   "SSID",       "WiFi VNT"},
+  {"wifi_pass",   "Password",   "vnttnv321"},
+  {"wifi_chan",   "Channel",    ""},
+  {"wifi_bssid",  "BSSID",      ""},
+  {"wifi_ip",     "IP",         ""},                          
+  {"wifi_mask",   "Mask",       ""},
+  {"wifi_gate",   "Gateway",    ""},
+  {"wifi_dns",    "DNS",        "8.8.8.8"},
+  {"mqtt_server", "Server",     "skynjari.cz"},
+  {"mqtt_port",   "Port",       "1883"},
+  {"mqtt_user",   "User name",  ""},
+  {"mqtt_pass",   "Password",   ""},
+  {"mqtt_id",     "ID",         "esp_sleep"},
+  {"mqtt_topic",  "Topic",      "esp/test"},
+  {"timezone",    "Timezone",   "2"}
+};
 
 #define params_count sizeof(params) / sizeof(params[0])
 
@@ -36,27 +37,27 @@ struct Param params[] = {
 /*
  * return value by key
  */
-char* getValue(const char* key) {
-  struct Param param = readParam(key);
-  if(strcmp(param.key, "") == 0){
-    return("");
-  }
-  return (param.value);
-}
-
-
-/*
- * return param by key
- */
-struct Param readParam(const char* key) {
+char* readValue(const char* key) {
+  char *value_ptr;
   for(int i = 0; i < params_count; i++){
     if(strcmp(params[i].key, key) == 0){
-      return(params[i]);
+      value_ptr = params[i].value;
+      return(value_ptr);
     }
   }
-  return(Param{});
 }
 
+/*
+ *
+ */
+void writeValue(const char* key, const char* value) {
+  for(int i = 0; i < params_count; i++){
+    if(strcmp(params[i].key, key) == 0){
+      strcpy(params[i].value, value);
+      break;
+    }
+  }
+}
 
 /*
  * write values to param
@@ -77,13 +78,11 @@ int writeParam(char* key, char* nice_name, char* value) {
  *
  */
 void saveParams(char* filename) {
-  // TODO VERBOSITY
   File file = SPIFFS.open(filename, "w");
   if (!file) {
-      Serial.println("File open failed");
+      if(VERBOSITY) { Serial.printf("%04d: %s\n", millis(),"File open failed"); }
   } else {
-    Serial.print("Writing configuration to: ");
-    Serial.println(filename);
+    if(VERBOSITY) { Serial.printf("%04d: %s: %s\n", millis(), "Writing configuration to", filename); }
     // write 10 strings to file
     for (int i = 0; i < params_count; i++){
       file.print(params[i].key);
@@ -101,13 +100,12 @@ void saveParams(char* filename) {
  *
  */
 int loadParams(char* filename) {
-  // TODO VERBOSITY
   File file = SPIFFS.open(filename, "r");
   if (!file) {
-      Serial.println("File open failed");
+      if(VERBOSITY) { Serial.printf("%04d: %s\n", millis(),"No configuration file found"); }
+      return NO_CONFIG_FILE;
   } else {
-    Serial.print("Loading config file: ");
-    Serial.println(filename);
+    if(VERBOSITY) { Serial.printf("%04d: %s: %s\n", millis(),"Loading config file", filename); }
     char line_buffer[LINE_BUFFER];
     while (file.available()){
       int len = file.readBytesUntil('\n', line_buffer, LINE_BUFFER);
@@ -128,16 +126,15 @@ int loadParams(char* filename) {
 void printFile(char* filename) {
   File file = SPIFFS.open(filename, "r");
   if (!file) {
-    Serial.println("File open failed");
+    if(VERBOSITY) { Serial.printf("%04d: %s\n", millis(), "No file to print"); }
+    return;
   } else {
-    Serial.println();
-    Serial.print("Reading file: ");
-    Serial.println(filename);
+    if(VERBOSITY) { Serial.printf("\n%04d: %s: %s\n", millis(), "Reading file: ", filename); }
     while (file.available()){
       Serial.write(file.read());
     }
   }
-  Serial.println();
+  Serial.printf("\n");
   file.close();
 }
 
@@ -146,17 +143,29 @@ void printFile(char* filename) {
  *
  */
 void printParams() {
-  Serial.println();
-  Serial.println("Configuration parameters:");
-  for(int i = 0; i < params_count; i++){
-    Serial.print(params[i].key);
-    Serial.print(": [");
-    Serial.print(params[i].nice_name);
-    Serial.print(", ");
-    Serial.print(params[i].value);
-    Serial.println("]");
+  if(VERBOSITY) {
+    Serial.printf("\n%04d: %s\n", millis(), "Configuration parameters:");
+    for(int i = 0; i < params_count; i++){
+      Serial.printf("%s: [%s, %s]", params[i].key, params[i].nice_name, params[i].value);
+    }
+    Serial.printf("\n");
   }
-  Serial.println();
+}
+
+
+/*
+ * 
+ */
+void printString(char* text){
+  if(VERBOSITY){
+    Serial.printf("\n%04d: %s: %x\n", millis(), "Addr: ", (int)text);
+    for(int i = 0; i < LINE_BUFFER; i++){
+      Serial.printf("%02d:%s:%d", i, text[i], (int)text[i]);
+      if((int)text[i] == 0){
+        break;
+      }
+    }
+  }
 }
 
 
@@ -170,6 +179,17 @@ char** splitLine(char* line){
   pointers[0] = &line[0];
   int p_index = 1;
 
+  // clean non printable characters
+  for (int i = 0; i < LINE_BUFFER; i++){
+    if((int)line[i] == 0){
+      break;
+    }
+    if((int)line[i] < 32){
+      line[i] = 0;
+    }
+  }
+
+  // split to three strings
   for (int i = 0; i < LINE_BUFFER; i++){
     if (line[i] == DELIMITER) {
       pointers[p_index] = &line[i+1];
@@ -183,3 +203,13 @@ char** splitLine(char* line){
   }
   return(pointers);
 }
+
+
+/*
+ * 
+ */
+void rmConfig() {
+  if(VERBOSITY) { Serial.printf("%04d: %s\n", millis(), "Deleting config file"); }
+  SPIFFS.remove(CONFIG_FILE);
+}
+
