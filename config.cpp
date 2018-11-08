@@ -4,7 +4,6 @@
 
 /*** INCLUDES ***/
 
-#include "FS.h"
 #include "config.h"
 
 
@@ -117,6 +116,7 @@ int loadParams(char* filename) {
     }
   }
   file.close();
+  return CONFIG_LOADED;
 }
 
 
@@ -146,7 +146,7 @@ void printParams() {
   if(VERBOSITY) {
     Serial.printf("\n%04d: %s\n", millis(), "Configuration parameters:");
     for(int i = 0; i < params_count; i++){
-      Serial.printf("%s: [%s, %s]", params[i].key, params[i].nice_name, params[i].value);
+      Serial.printf("%s: [%s, %s]\n", params[i].key, params[i].nice_name, params[i].value);
     }
     Serial.printf("\n");
   }
@@ -211,5 +211,28 @@ char** splitLine(char* line){
 void rmConfig() {
   if(VERBOSITY) { Serial.printf("%04d: %s\n", millis(), "Deleting config file"); }
   SPIFFS.remove(CONFIG_FILE);
+}
+
+
+/*
+ * initialize serial communication for debug
+ */
+void initSerial(){
+  if (VERBOSITY) {
+    Serial.begin(SERIAL_SPEED);
+    while(!Serial){
+      delay(10);
+    }
+    Serial.printf("\n=== %s ===\n", "ESP started");
+  }
+}
+
+
+/*
+ * initialize the filesystem
+ */
+void initFS(){
+  SPIFFS.begin();  // TODO check the status  
+  if(VERBOSITY) { Serial.printf("%04d: %s\n", millis(), "Filesystem started"); }
 }
 
