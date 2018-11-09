@@ -26,6 +26,13 @@
 
 #define RST_DEEP_SLEEP        5
 
+#define UDP_LOCAL_PORT        2390
+
+
+/*** GLOBAL VARIABLES ***/
+
+
+
 
 /*** FUNCTIONS ***/
 
@@ -41,6 +48,7 @@ void initWiFi();
 int connectionCheck();
 int espResetInfo();
 void resetWifiParams();
+//void initUDP();
 
 
 #endif

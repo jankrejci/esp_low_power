@@ -8,7 +8,9 @@
 #include "wifi.h"
 
 
- /*
+/*** FUNCTIONS ***/
+
+/*
  * 
  */
 unsigned char* charToAddr(char* address, int type){
@@ -86,7 +88,7 @@ void printAddr(unsigned char* addr, int type){
  * 
  */
 int connectSaved(){
-  if(VERBOSITY) { Serial.printf("%04d: %s\n", millis(), "Connecting to wifi with last setting"); }
+  if(VERBOSITY) { Serial.printf("%04d: %s\n", millis(), "Connecting to wifi with last known setting"); }
   WiFi.forceSleepWake();
   delay(10);
   
@@ -232,4 +234,3 @@ void resetWifiParams() {
   
   if(VERBOSITY >= 2) { printParams(); }
 }
-

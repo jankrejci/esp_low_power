@@ -18,6 +18,7 @@
 #include "config.h"
 #include "wifi.h"
 #include "mqtt.h"
+#include "timing.h"
 
 
 /*** DEFINES ***/
@@ -58,7 +59,7 @@ void setup() {
 
   // clean wifi and time setting if there was power loss
   int info = espResetInfo();
-  if(VERBOSITY >= 2) { Serial.printf("%04d: %s %d\n", millis(), "Reset status", info); }
+  if(VERBOSITY >= 2) { Serial.printf("%04d: %s: %d\n", millis(), "Reset status", info); }
   if(info != RST_DEEP_SLEEP){
     resetWifiParams();
   }
@@ -66,13 +67,17 @@ void setup() {
   // connect with saved parameters
   if(strlen(readValue("wifi_ip")) > 7){
     connectSaved();
+    syncTimeSaved();
   }
 
   // get the connection from DHCP
-  if(strlen(readValue("wifi_ip")) == 0){
+  if(strlen(readValue("wifi_ip")) == 0 ||
+     strcmp(readValue("wifi_ip"), "0.0.0.0") == 0 ||
+     getLastUpdateDelta() > 3600){
     connectClean();
     writeWifiParams();
-    saveParams(CONFIG_FILE);
+    syncTimeNTP();
+    writeWifiTimeParam();
   }
 
   // TODO handle no config, no connection
@@ -80,11 +85,18 @@ void setup() {
     if(VERBOSITY) { Serial.printf("%04d: %s\n", millis(), "No WiFi SSID available"); }
   }
 
+  uint32_t ntp_sec = getNTPepoch(false);
+  if(VERBOSITY) { Serial.printf("%04d: %s: %lu\n", millis(), "Actual time", ntp_sec); }
+  if(VERBOSITY) { Serial.printf("%04d: %s: %lu\n", millis(), "Expect time", nowSeconds()); }
+  
+  
   char message[100] = "Hello from ESP8266 ";
   if(mqttConnect() == MQTT_CONNECTED) {
     mqttPublish(message);
   }
-  
+
+  writeTimeParam();
+  saveParams(CONFIG_FILE);
   haltESP();
 }
 
@@ -95,4 +107,3 @@ void loop() {}
 
 
 /*** FUNCTIONS ***/
-

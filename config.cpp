@@ -11,21 +11,27 @@
 
 struct Param params[] = {
   // param name, nice name, default value
-  {"wifi_ssid",   "SSID",       "WiFi VNT"},
-  {"wifi_pass",   "Password",   "vnttnv321"},
-  {"wifi_chan",   "Channel",    ""},
-  {"wifi_bssid",  "BSSID",      ""},
-  {"wifi_ip",     "IP",         ""},                          
-  {"wifi_mask",   "Mask",       ""},
-  {"wifi_gate",   "Gateway",    ""},
-  {"wifi_dns",    "DNS",        "8.8.8.8"},
-  {"mqtt_server", "Server",     "skynjari.cz"},
-  {"mqtt_port",   "Port",       "1883"},
-  {"mqtt_user",   "User name",  ""},
-  {"mqtt_pass",   "Password",   ""},
-  {"mqtt_id",     "ID",         "esp_sleep"},
-  {"mqtt_topic",  "Topic",      "esp/test"},
-  {"timezone",    "Timezone",   "2"}
+  {"wifi_ssid",     "SSID",         "WiFi VNT"},
+  {"wifi_pass",     "Password",     "vnttnv321"},
+//  {"wifi_ssid",     "SSID",         "Skynet Gate"},
+//  {"wifi_pass",     "Password",     "velkasvestka"},
+  {"wifi_chan",     "Channel",      ""},
+  {"wifi_bssid",    "BSSID",        ""},
+  {"wifi_ip",       "IP",           ""},                          
+  {"wifi_mask",     "Mask",         ""},
+  {"wifi_gate",     "Gateway",      ""},
+  {"wifi_dns",      "DNS",          "8.8.8.8"},
+  {"wifi_time",     "Last update",  ""},
+  {"mqtt_server",   "Server",       "skynjari.cz"},
+  {"mqtt_port",     "Port",         "1883"},
+  {"mqtt_user",     "User name",    ""},
+  {"mqtt_pass",     "Password",     ""},
+  {"mqtt_id",       "ID",           "esp_sleep"},
+  {"mqtt_topic",    "Topic",        "esp/test"},
+  {"ntp_server",    "NTP",          "tak.cesnet.cz"},
+  {"time_wake_s",   "Wake time s",  ""},
+  {"time_wake_ms",  "Wake time ms", ""},
+  {"timezone",      "Timezone",     "2"}
 };
 
 #define params_count sizeof(params) / sizeof(params[0])
@@ -235,4 +241,3 @@ void initFS(){
   SPIFFS.begin();  // TODO check the status  
   if(VERBOSITY) { Serial.printf("%04d: %s\n", millis(), "Filesystem started"); }
 }
-
