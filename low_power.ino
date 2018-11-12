@@ -15,95 +15,49 @@
 
 /*** INCLUDES ***/
 
-#include "config.h"
-#include "wifi.h"
-#include "mqtt.h"
-#include "timing.h"
-
-
-/*** DEFINES ***/
+#include "ESPMgr.h"
 
 
 /*** GLOBAL VARIABLES ***/
+
+ESPMgr mgr;
 
 
 /*** SETUP ***/
 
 void setup() {
-  initWiFi();     // sleep mode right after the start
-  initSerial();   // communication line for debug info
-  initFS();       // file system for config file
-  
-  //reset saved settings if jumper is mounted
-  pinMode(D5, INPUT_PULLUP);
-  if(!digitalRead(D5)) {
-    if(VERBOSITY) { Serial.printf("%04d: %s\n", millis(), "Configuration reset"); }
-    rmConfig();  // TODO start config server only
-  }  
+  mgr.begin();
+  mgr.loadConfig();
+  mgr.connectWifi();
 
-  // TODO handle wrong loading
-  switch(loadParams(CONFIG_FILE)){
-    case CONFIG_LOADED:
-      if(VERBOSITY >=2) { printFile(CONFIG_FILE); }
-      break;
-          
-    case NO_CONFIG_FILE:
-      saveParams(CONFIG_FILE);  // create config file with default params
-      haltESP(1e6);             // restart
-      break;
+  // DEBUG
+  Serial.println();
+  ESPTime ntp;
+  ntp.getNTPepoch(mgr.readParamValue("time_server"));
+  ntp.print();
+  ESPTime saved = mgr.now();
+  saved.print();
+  Serial.println(saved.delta(&ntp));
+  Serial.println();
 
-    default:
-      break;
-  }
-  if(VERBOSITY >= 2) { printParams(); }
+  // debug
+  pinMode(D6, OUTPUT);
 
-  // clean wifi and time setting if there was power loss
-  int info = espResetInfo();
-  if(VERBOSITY >= 2) { Serial.printf("%04d: %s: %d\n", millis(), "Reset status", info); }
-  if(info != RST_DEEP_SLEEP){
-    resetWifiParams();
-  }
-  
-  // connect with saved parameters
-  if(strlen(readValue("wifi_ip")) > 7){
-    connectSaved();
-    syncTimeSaved();
-  }
-
-  // get the connection from DHCP
-  if(strlen(readValue("wifi_ip")) == 0 ||
-     strcmp(readValue("wifi_ip"), "0.0.0.0") == 0 ||
-     getLastUpdateDelta() > 3600){
-    connectClean();
-    writeWifiParams();
-    syncTimeNTP();
-    writeWifiTimeParam();
-  }
-
-  // TODO handle no config, no connection
-  if(strlen(readValue("wifi_ssid")) == 0){
-    if(VERBOSITY) { Serial.printf("%04d: %s\n", millis(), "No WiFi SSID available"); }
-  }
-
-  uint32_t ntp_sec = getNTPepoch(false);
-  if(VERBOSITY) { Serial.printf("%04d: %s: %lu\n", millis(), "Actual time", ntp_sec); }
-  if(VERBOSITY) { Serial.printf("%04d: %s: %lu\n", millis(), "Expect time", nowSeconds()); }
-  
-  
   char message[100] = "Hello from ESP8266 ";
-  if(mqttConnect() == MQTT_CONNECTED) {
-    mqttPublish(message);
-  }
+  mgr.mqttPublish(message);
 
-  writeTimeParam();
-  saveParams(CONFIG_FILE);
-  haltESP();
+  mgr.halt();
 }
 
 
-/*** LOOP ***/
+/*** EMPTY LOOP ***/
 
-void loop() {}
+void loop() {
 
-
-/*** FUNCTIONS ***/
+  // DEBUG
+  bool state = HIGH;
+  while (true) {
+    digitalWrite(D6, state);
+    delay(1);
+  }
+}
